@@ -70,14 +70,13 @@ model User {
 model Permissions {
   id           String     @id @default(uuid())
   email        String
-  userId       String
+  User         User       @relation(fields: [email], references: [email], onDelete: Cascade)
   subAccountId String
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   access       Boolean
-  User         User       @relation(fields: [userId], references: [id])
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
-  @@index([userId])
   @@index([subAccountId])
+  @@index([email])
 }
 
 model Agency {
@@ -102,9 +101,8 @@ model Agency {
   SidebarOption    AgencySidebarOption[]
   Invitation       Invitation[]
   Notification     Notification[]
-  Subscription     Subscription?         @relation(fields: [subscriptionId], references: [id])
+  Subscription     Subscription?
   AddOns           AddOns[]
-  subscriptionId   String?
 }
 
 model SubAccount {
@@ -133,18 +131,21 @@ model SubAccount {
   Automation       Automation[]
   Pipeline         Pipeline[]
   Tags             Tag[]
+  Notification     Notification[]
 
   @@index([agencyId])
 }
 
 model Tag {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
   color        String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   subAccountId String
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
+
+  SubAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Ticket     Ticket[]
 
   @@index([subAccountId])
 }
@@ -154,8 +155,9 @@ model Pipeline {
   name         String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  Lane         Lane[]
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   subAccountId String
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
@@ -165,7 +167,9 @@ model Lane {
   name       String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  Pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   pipelineId String
+  Tickets    Ticket[]
   order      Int      @default(0)
 
   @@index([pipelineId])
@@ -178,12 +182,20 @@ model Ticket {
   updatedAt   DateTime @updatedAt
   laneId      String
   order       Int      @default(0)
+  Lane        Lane     @relation(fields: [laneId], references: [id], onDelete: Cascade)
   value       Decimal?
   description String?
-  User        User?    @relation(fields: [userId], references: [id])
-  userId      String?
+  Tags        Tag[]
+
+  customerId String?
+  Customer   Contact? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  assignedUserId String?
+  Assigned       User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
 
   @@index([laneId])
+  @@index([customerId])
+  @@index([assignedUserId])
 }
 
 enum TriggerTypes {
@@ -197,7 +209,8 @@ model Trigger {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   subAccountId String
-  SubAccount   SubAccount   @relation(fields: [subAccountId], references: [id])
+  Subaccount   SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Automations  Automation[]
 
   @@index([subAccountId])
 }
@@ -209,10 +222,11 @@ model Automation {
   updatedAt          DateTime             @updatedAt
   triggerId          String?
   published          Boolean              @default(false)
+  Trigger            Trigger?             @relation(fields: [triggerId], references: [id], onDelete: Cascade)
   subAccountId       String
+  Subaccount         SubAccount           @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   Action             Action[]
   AutomationInstance AutomationInstance[]
-  SubAccount         SubAccount           @relation(fields: [subAccountId], references: [id])
 
   @@index([triggerId])
   @@index([subAccountId])
@@ -223,8 +237,8 @@ model AutomationInstance {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   automationId String
+  Automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
   active       Boolean    @default(false)
-  Automation   Automation @relation(fields: [automationId], references: [id])
 
   @@index([automationId])
 }
@@ -241,19 +255,22 @@ model Action {
   updatedAt    DateTime   @updatedAt
   automationId String
   order        Int
-  Automation   Automation @relation(fields: [automationId], references: [id])
+  Automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  laneId       String     @default("0")
 
   @@index([automationId])
 }
 
 model Contact {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
   email        String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   subAccountId String
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
+
+  Subaccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Ticket     Ticket[]
 
   @@index([subAccountId])
 }
@@ -266,7 +283,7 @@ model Media {
   subAccountId String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
+  Subaccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
 
   @@index([subAccountId])
 }
@@ -281,10 +298,10 @@ model Funnel {
   subDomainName String?      @unique
   favicon       String?      @db.Text
   subAccountId  String
+  SubAccount    SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   FunnelPages   FunnelPage[]
   liveProducts  String?      @default("[]")
   ClassName     ClassName[]
-  SubAccount    SubAccount   @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
@@ -297,7 +314,7 @@ model ClassName {
   updatedAt  DateTime @updatedAt
   funnelId   String
   customData String?  @db.Text
-  Funnel     Funnel   @relation(fields: [funnelId], references: [id])
+  Funnel     Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
 
   @@index([funnelId])
 }
@@ -313,7 +330,7 @@ model FunnelPage {
   order        Int
   previewImage String?  @db.Text
   funnelId     String
-  Funnel       Funnel   @relation(fields: [funnelId], references: [id])
+  Funnel       Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
 
   @@index([funnelId])
 }
@@ -324,9 +341,9 @@ model AgencySidebarOption {
   link      String   @default("#")
   icon      Icon     @default(info)
   agencyId  String
+  Agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Agency    Agency   @relation(fields: [agencyId], references: [id])
 
   @@index([agencyId])
 }
@@ -338,8 +355,8 @@ model SubAccountSidebarOption {
   icon         Icon        @default(info)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  SubAccount   SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   subAccountId String?
-  SubAccount   SubAccount? @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
@@ -354,23 +371,26 @@ model Invitation {
   id       String           @id @default(uuid())
   email    String           @unique
   agencyId String
+  Agency   Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   status   InvitationStatus @default(PENDING)
   role     Role             @default(SUBACCOUNT_USER)
-  Agency   Agency           @relation(fields: [agencyId], references: [id])
 
   @@index([agencyId])
 }
 
 model Notification {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   notification String
   agencyId     String
   subAccountId String?
   userId       String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  User         User     @relation(fields: [userId], references: [id])
-  Agency       Agency   @relation(fields: [agencyId], references: [id])
+
+  User       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Agency     Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  SubAccount SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([agencyId])
   @@index([subAccountId])
@@ -383,18 +403,20 @@ enum Plan {
 }
 
 model Subscription {
-  id                   String   @id @default(uuid())
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  plan                 Plan?
-  price                String?
-  active               Boolean  @default(false)
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  plan      Plan?
+  price     String?
+  active    Boolean  @default(false)
+
   priceId              String
   customerId           String
   currentPeriodEndDate DateTime
   subscritiptionId     String   @unique
-  agencyId             String?  @unique
-  Agency               Agency[]
+
+  agencyId String? @unique
+  Agency   Agency? @relation(fields: [agencyId], references: [id])
 
   @@index([customerId])
 }
