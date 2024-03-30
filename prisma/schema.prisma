@@ -1,6 +1,8 @@
+// schema.prisma
+
 datasource db {
-  provider = "postgresql"
-  url = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
   directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
 
@@ -49,7 +51,7 @@ enum Icon {
 }
 
 model User {
-  id           String         @id @default(uuid()) @map("id") @db.Uuid
+  id           String         @id @default(uuid())
   name         String
   avatarUrl    String         @db.Text
   email        String         @unique
@@ -66,19 +68,20 @@ model User {
 }
 
 model Permissions {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   email        String
-  User         User       @relation(fields: [email], references: [email], onDelete: Cascade)
+  userId       String
   subAccountId String
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   access       Boolean
+  User         User       @relation(fields: [userId], references: [id])
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
+  @@index([userId])
   @@index([subAccountId])
-  @@index([email])
 }
 
 model Agency {
-  id               String                @id @default(uuid()) @map("id") @db.Uuid
+  id               String                @id @default(uuid())
   connectAccountId String?               @default("")
   customerId       String                @default("")
   name             String
@@ -99,12 +102,13 @@ model Agency {
   SidebarOption    AgencySidebarOption[]
   Invitation       Invitation[]
   Notification     Notification[]
-  Subscription     Subscription?
+  Subscription     Subscription?         @relation(fields: [subscriptionId], references: [id])
   AddOns           AddOns[]
+  subscriptionId   String?
 }
 
 model SubAccount {
-  id               String                    @id @default(uuid()) @map("id") @db.Uuid
+  id               String                    @id @default(uuid())
   connectAccountId String?                   @default("")
   name             String
   subAccountLogo   String                    @db.Text
@@ -129,71 +133,57 @@ model SubAccount {
   Automation       Automation[]
   Pipeline         Pipeline[]
   Tags             Tag[]
-  Notification     Notification[]
 
   @@index([agencyId])
 }
 
 model Tag {
-  id           String   @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   name         String
   color        String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   subAccountId String
-
-  SubAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
-  Ticket     Ticket[]
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
 
 model Pipeline {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   name         String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  Lane         Lane[]
-  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   subAccountId String
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
 
 model Lane {
-  id         String   @id @default(uuid()) @map("id") @db.Uuid
+  id         String   @id @default(uuid())
   name       String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  Pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   pipelineId String
-  Tickets    Ticket[]
   order      Int      @default(0)
 
   @@index([pipelineId])
 }
 
 model Ticket {
-  id          String   @id @default(uuid()) @map("id") @db.Uuid
+  id          String   @id @default(uuid())
   name        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   laneId      String
   order       Int      @default(0)
-  Lane        Lane     @relation(fields: [laneId], references: [id], onDelete: Cascade)
   value       Decimal?
   description String?
-  Tags        Tag[]
-
-  customerId String?
-  Customer   Contact? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  assignedUserId String?
-  Assigned       User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  User        User?    @relation(fields: [userId], references: [id])
+  userId      String?
 
   @@index([laneId])
-  @@index([customerId])
-  @@index([assignedUserId])
 }
 
 enum TriggerTypes {
@@ -201,42 +191,40 @@ enum TriggerTypes {
 }
 
 model Trigger {
-  id           String       @id @default(uuid()) @map("id") @db.Uuid
+  id           String       @id @default(uuid())
   name         String
   type         TriggerTypes
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   subAccountId String
-  Subaccount   SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
-  Automations  Automation[]
+  SubAccount   SubAccount   @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
 
 model Automation {
-  id                 String               @id @default(uuid()) @map("id") @db.Uuid
+  id                 String               @id @default(uuid())
   name               String
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   triggerId          String?
   published          Boolean              @default(false)
-  Trigger            Trigger?             @relation(fields: [triggerId], references: [id], onDelete: Cascade)
   subAccountId       String
-  Subaccount         SubAccount           @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   Action             Action[]
   AutomationInstance AutomationInstance[]
+  SubAccount         SubAccount           @relation(fields: [subAccountId], references: [id])
 
   @@index([triggerId])
   @@index([subAccountId])
 }
 
 model AutomationInstance {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   automationId String
-  Automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
   active       Boolean    @default(false)
+  Automation   Automation @relation(fields: [automationId], references: [id])
 
   @@index([automationId])
 }
@@ -246,48 +234,45 @@ enum ActionType {
 }
 
 model Action {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   name         String
   type         ActionType
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   automationId String
   order        Int
-  Automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  laneId       String     @default("0")
+  Automation   Automation @relation(fields: [automationId], references: [id])
 
   @@index([automationId])
 }
 
 model Contact {
-  id           String   @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   name         String
   email        String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   subAccountId String
-
-  Subaccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
-  Ticket     Ticket[]
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
 
 model Media {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @default(uuid())
   type         String?
   name         String
   link         String     @unique
   subAccountId String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  Subaccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
 
 model Funnel {
-  id            String       @id @default(uuid()) @map("id") @db.Uuid
+  id            String       @id @default(uuid())
   name          String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -296,29 +281,29 @@ model Funnel {
   subDomainName String?      @unique
   favicon       String?      @db.Text
   subAccountId  String
-  Subaccount    SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   FunnelPages   FunnelPage[]
   liveProducts  String?      @default("[]")
   ClassName     ClassName[]
+  SubAccount    SubAccount   @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
 
 model ClassName {
-  id         String   @id @default(uuid()) @map("id") @db.Uuid
+  id         String   @id @default(uuid())
   name       String
   color      String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   funnelId   String
   customData String?  @db.Text
-  Funnel     Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  Funnel     Funnel   @relation(fields: [funnelId], references: [id])
 
   @@index([funnelId])
 }
 
 model FunnelPage {
-  id           String   @id @default(uuid()) @map("id") @db.Uuid
+  id           String   @id @default(uuid())
   name         String
   pathName     String   @default("")
   createdAt    DateTime @default(now())
@@ -328,33 +313,33 @@ model FunnelPage {
   order        Int
   previewImage String?  @db.Text
   funnelId     String
-  Funnel       Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  Funnel       Funnel   @relation(fields: [funnelId], references: [id])
 
   @@index([funnelId])
 }
 
 model AgencySidebarOption {
-  id        String   @id @default(uuid()) @map("id") @db.Uuid
+  id        String   @id @default(uuid())
   name      String   @default("Menu")
   link      String   @default("#")
   icon      Icon     @default(info)
   agencyId  String
-  Agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  Agency    Agency   @relation(fields: [agencyId], references: [id])
 
   @@index([agencyId])
 }
 
 model SubAccountSidebarOption {
-  id           String      @id @default(uuid()) @map("id") @db.Uuid
+  id           String      @id @default(uuid())
   name         String      @default("Menu")
   link         String      @default("#")
   icon         Icon        @default(info)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  SubAccount   SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   subAccountId String?
+  SubAccount   SubAccount? @relation(fields: [subAccountId], references: [id])
 
   @@index([subAccountId])
 }
@@ -366,29 +351,26 @@ enum InvitationStatus {
 }
 
 model Invitation {
-  id       String           @id @default(uuid()) @map("id") @db.Uuid
+  id       String           @id @default(uuid())
   email    String           @unique
   agencyId String
-  Agency   Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   status   InvitationStatus @default(PENDING)
   role     Role             @default(SUBACCOUNT_USER)
+  Agency   Agency           @relation(fields: [agencyId], references: [id])
 
   @@index([agencyId])
 }
 
 model Notification {
-  id           String  @id @default(uuid()) @map("id") @db.Uuid
+  id           String   @id @default(uuid())
   notification String
   agencyId     String
   subAccountId String?
   userId       String
-
-  User       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Agency     Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  SubAccount SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  User         User     @relation(fields: [userId], references: [id])
+  Agency       Agency   @relation(fields: [agencyId], references: [id])
 
   @@index([agencyId])
   @@index([subAccountId])
@@ -401,26 +383,24 @@ enum Plan {
 }
 
 model Subscription {
-  id        String   @id @default(uuid()) @map("id") @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  plan      Plan?
-  price     String?
-  active    Boolean  @default(false)
-
+  id                   String   @id @default(uuid())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  plan                 Plan?
+  price                String?
+  active               Boolean  @default(false)
   priceId              String
   customerId           String
   currentPeriodEndDate DateTime
   subscritiptionId     String   @unique
-
-  agencyId String? @unique
-  Agency   Agency? @relation(fields: [agencyId], references: [id])
+  agencyId             String?  @unique
+  Agency               Agency[]
 
   @@index([customerId])
 }
 
 model AddOns {
-  id        String   @id @default(uuid()) @map("id") @db.Uuid
+  id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String
