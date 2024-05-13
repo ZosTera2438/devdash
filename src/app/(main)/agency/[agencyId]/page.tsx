@@ -28,7 +28,7 @@ const Page = async ({
   params: { agencyId: string }
   searchParams: { code: string }
 }) => {
-  let currency = 'USD'
+  let currency = 'INR'
   let sessions
   let totalClosedSessions
   let totalPendingSessions
@@ -58,7 +58,7 @@ const Page = async ({
       stripeAccount: agencyDetails.connectAccountId,
     })
 
-    currency = response.default_currency?.toUpperCase() || 'USD'
+    currency = response.default_currency?.toUpperCase() || 'INR'
     const checkoutSessions = await stripe.checkout.sessions.list(
       {
         created: { gte: startDate, lte: endDate },
@@ -125,7 +125,7 @@ const Page = async ({
             <CardHeader>
               <CardDescription>Income</CardDescription>
               <CardTitle className="text-4xl">
-                {net ? `${currency} ${net.toFixed(2)}` : `$0.00`}
+                {net ? `${currency} ${net.toFixed(2)}` : `₹0.00`}
               </CardTitle>
               <small className="text-xs text-muted-foreground">
                 For the year {currentYear}
@@ -142,7 +142,7 @@ const Page = async ({
               <CardTitle className="text-4xl">
                 {potentialIncome
                   ? `${currency} ${potentialIncome.toFixed(2)}`
-                  : `$0.00`}
+                  : `₹0.00`}
               </CardTitle>
               <small className="text-xs text-muted-foreground">
                 For the year {currentYear}
