@@ -15,7 +15,7 @@ import { AreaChart } from '@tremor/react'
 import {
   ClipboardIcon,
   Contact2,
-  DollarSign,
+  IndianRupee,
   Goal,
   ShoppingCart,
 } from 'lucide-react'
@@ -134,7 +134,7 @@ const Page = async ({
             <CardContent className="text-sm text-muted-foreground">
               Total revenue generated as reflected in your stripe dashboard.
             </CardContent>
-            <DollarSign className="absolute right-4 top-4 text-muted-foreground" />
+            <IndianRupee className="absolute right-4 top-4 text-muted-foreground" />
           </Card>
           <Card className="flex-1 relative">
             <CardHeader>
@@ -151,7 +151,7 @@ const Page = async ({
             <CardContent className="text-sm text-muted-foreground">
               This is how much you can close.
             </CardContent>
-            <DollarSign className="absolute right-4 top-4 text-muted-foreground" />
+            <IndianRupee className="absolute right-4 top-4 text-muted-foreground" />
           </Card>
           <Card className="flex-1 relative">
             <CardHeader>
