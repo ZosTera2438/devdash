@@ -48,10 +48,10 @@ const ContactPage = async ({ params }: Props) => {
   const allContacts = contacts.Contact
 
   const formatTotal = (tickets: Ticket[]) => {
-    if (!tickets || !tickets.length) return '$0.00'
+    if (!tickets || !tickets.length) return '₹0.00'
     const amt = new Intl.NumberFormat(undefined, {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
     })
 
     const laneAmt = tickets.reduce(
